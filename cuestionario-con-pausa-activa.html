@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuestionario Interactivo</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --success-color: #22c55e;
+            --error-color: #ef4444;
+            --background-color: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            padding: 2rem;
+            margin: 2rem auto;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 1rem;
+        }
+
+        .question {
+            background: #ffffff;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .question:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        .question p {
+            font-size: 1.1rem;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .options-container {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: #f3f4f6;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        label:hover {
+            background: #e5e7eb;
+        }
+
+        input[type="radio"] {
+            margin-right: 1rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: var(--primary-color);
+        }
+
+        .correct {
+            background: #dcfce7 !important;
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .incorrect {
+            background: #fee2e2 !important;
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+
+        #progress-container {
+            background: #e5e7eb;
+            border-radius: 1rem;
+            height: 0.5rem;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        #score-container {
+            text-align: center;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: #f3f4f6;
+        }
+
+        /* Estilos para el modal de pausa activa */
+        .pausa-activa-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .pausa-activa-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .pausa-activa-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .pausa-activa-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pausa-activa-description {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .pausa-activa-exercise {
+            padding: 1.5rem;
+            background: #f3f4f6;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pausa-activa-exercise img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+
+        .pausa-activa-continue {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .pausa-activa-continue:hover {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CUESTIONARIO PERSONALIZADO (PONAL)</h1>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="quiz"></div>
+        <div id="score-container">
+            Puntuación: <span id="score">0</span> / <span id="total">0</span>
+        </div>
+    </div>
+
+    <!-- Modal para pausas activas -->
+    <div id="pausaActivaModal" class="pausa-activa-modal">
+        <div class="pausa-activa-content">
+            <h2 class="pausa-activa-title">¡Pausa Activa!</h2>
+            <p class="pausa-activa-description">Has completado 20 preguntas. Tómate un momento para descansar y realizar este breve ejercicio:</p>
+            <div class="pausa-activa-exercise" id="pausaActivaExercise">
+                <!-- El contenido del ejercicio se cargará dinámicamente -->
+            </div>
+            <button id="continuarBtn" class="pausa-activa-continue">Continuar Cuestionario</button>
+        </div>
+    </div>
+    
+<div id="clock" style="font-size: 24px; font-weight: bold;"></div>
+
+<script>
+function updateClock() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    document.getElementById('clock').textContent = timeString;
+}
+setInterval(updateClock, 1000);
+updateClock();
+</script>
+
+    <script>
+    const questions = [
+  {
+    question: "Según el Artículo 25 del Código Penal colombiano, ¿Cuál de las siguientes situaciones es una posición de garantía que podría hacer punible una omisión?",
+    options: [
+      "Una persona que, al estar cerca de un accidente, decide no ayudar, ya que no tiene obligación de intervenir.",
+      "Un conductor que, al ver a un peatón cruzando ilegalmente, decide acelerar para evitar el retraso en su trayecto.",
+      "Un padre que, al ver que su hijo se ahoga en una piscina, decide no intervenir porque considera que el niño puede resolverlo solo.",
+      "Un enfermero que, al ver a un paciente con una herida grave, decide no aplicarle primeros auxilios porque no es parte de su trabajo."
+    ],
+    answer: "Un padre que, al ver que su hijo se ahoga en una piscina, decide no intervenir porque considera que el niño puede resolverlo solo."
+  },
+  {
+    question: "Un servidor público, en el ejercicio de sus funciones, comete un delito de abuso de autoridad. Un particular, sabiendo de la conducta ilícita del servidor, le ofrece ayuda para que continúe con la comisión del delito. El servidor acepta y ambos cometen el ilícito.De acuerdo con el Código Penal Colombiano, ¿Cuál de las siguientes afirmaciones es correcta respecto al particular que ayuda al servidor público en la realización del delito?",
+    options: [
+      "El particular no será responsable penalmente por su intervención en el delito, ya que su colaboración no fue una acción directa del servidor público.",
+      "El particular será considerado como autor principal del delito, dado que su acción fue determinante para la comisión del hecho ilícito.",
+      "El particular podría recibir una rebaja en su pena de hasta una cuarta parte, debido a que no tiene las calidades especiales exigidas en el tipo penal correspondiente."
+    ],
+    answer: "El particular podría recibir una rebaja en su pena de hasta una cuarta parte, debido a que no tiene las calidades especiales exigidas en el tipo penal correspondiente."
+  },
+        {
+  question: "De acuerdo con el Artículo 21 del Código Penal colombiano, ¿cuál de las siguientes afirmaciones es correcta en relación con las modalidades de la conducta punible?",
+  options: [
+    "La culpa y la preterintención son punibles en todos los casos, sin importar el tipo de delito.",
+    "La culpa es siempre más grave que el dolo en cuanto a responsabilidad penal.",
+    "La culpa y la preterintención solo son punibles en los casos expresamente señalados por la ley.",
+    "La preterintención es punible únicamente en delitos de acción dolosa."
+  ],
+  answer: "La culpa y la preterintención solo son punibles en los casos expresamente señalados por la ley."
+},
+        {
+  question: "Un ciudadano es sorprendido hurtando un producto de bajo valor en una tienda. La policía lo captura en flagrancia, y al revisar su historial, se encuentra que no tiene antecedentes penales. Según el Código Penal colombiano, ¿cómo se debe clasificar su conducta y cuál sería la posible consecuencia legal?",
+  options: [
+    "Delito, porque el hurto, sin importar el monto.",
+    "Contravención, ya que al ser un hecho de menor gravedad y no tener antecedentes, solo se impondría una multa.",
+    "No es una conducta punible, pues si el valor del objeto es bajo, no se considera un hecho sancionable penalmente."
+  ],
+  answer: "Delito, porque el hurto, sin importar el monto."
+},
+        {
+  question: "Según el Artículo 21 del Código Penal colombiano, ¿cuáles son las modalidades de la conducta punible?",
+  options: [
+    "Delito, contravención y falta.",
+    "Acción, omisión y comisión.",
+    "Responsabilidad, imputabilidad y culpabilidad.",
+    "Dolo, culpa y preterintención."
+  ],
+  answer: "Dolo, culpa y preterintención."
+},
+        {
+    question: "Laura, en una conversación con su amiga Andrea, le sugiere que robe un bolso en una tienda de lujo. Laura le da detalles sobre cómo evitar que las cámaras de seguridad la detecten y le recomienda la mejor hora para hacerlo. Andrea, siguiendo los consejos de Laura, decide robar el bolso y lo hace con éxito. Según el Artículo 30 del Código Penal, ¿Cómo se califica la responsabilidad de Laura y Andrea?",
+    options: [
+        "Laura es autora y Andrea es cómplice, Laura recibirá la pena completa y Andrea una pena disminuida.",
+        "Laura es determinadora y Andrea es autora, Laura recibirá la pena completa y Andrea también la pena completa.",
+        "Laura es determinadora y Andrea es autora, ambas recibirán la misma pena.",
+        "Laura es cómplice y Andrea es autora, Laura recibirá una pena disminuida y Andrea la pena completa."
+    ],
+    answer: "Laura es determinadora y Andrea es autora, ambas recibirán la misma pena."
+},
+        {
+    question: "Según el Artículo 28 del Código Penal, ¿Quiénes concurren en la realización de una conducta punible?",
+    options: [
+        "Solo los autores y los cómplices, ya que son los únicos responsables directos del delito.",
+        "Los autores y los partícipes, ya que ambos tienen algún grado de responsabilidad en la comisión del delito.",
+        "Solo los partícipes y coautores, porque son quienes colaboran en la ejecución del crimen.",
+        "Solo los cómplices y partícipes, ya que son quienes tienen la mayor responsabilidad en el delito."
+    ],
+    answer: "Los autores y los partícipes, ya que ambos tienen algún grado de responsabilidad en la comisión del delito."
+},
+        {
+    question: "De acuerdo con el Artículo 26 del Código Penal colombiano, ¿en qué momento se considera que se ha realizado una conducta punible?",
+    options: [
+        "En el momento en que el resultado de la conducta se manifiesta, independientemente de cuándo ocurrió la acción o la omisión.",
+        "En el momento en que la acción o la omisión debió haber ocurrido, aunque el resultado se haya producido en otro momento posterior.",
+        "Solo en el momento en que se comete la acción ilícita, sin importar si el resultado ocurre posteriormente.",
+        "En el instante en que se produce el daño, sin tener en cuenta si el agente estaba en condiciones de evitarlo o no."
+    ],
+    answer: "En el momento en que la acción o la omisión debió haber ocurrido, aunque el resultado se haya producido en otro momento posterior."
+},
+        {
+    question: "Un hombre de una comunidad rural, donde es común utilizar métodos tradicionales de resolución de conflictos, comete un acto que en la legislación estatal se considera un delito. Sin embargo, él actuó bajo la creencia de que su acción estaba permitida dentro de las normas de su comunidad, que no reconoce la ilicitud del acto según las leyes del Estado. Según el artículo 33 del Código Penal, este individuo podría ser considerado:",
+    options: [
+        "Inimputable, debido a su contexto sociocultural, si no comprendió la ilicitud de su conducta.",
+        "Responsable penalmente, ya que las leyes del Estado prevalecen sobre las normas socioculturales.",
+        "Inimputable, solo si se prueba que la comunidad tiene costumbres que se contradicen con la ley.",
+        "Responsable penalmente, pero con una pena reducida debido a su desconocimiento de las leyes del Estado."
+    ],
+    answer: "Inimputable, debido a su contexto sociocultural, si no comprendió la ilicitud de su conducta."
+},
+        {
+    question: "Una persona ve que una banca de parque está siendo devastada por un incendio que amenaza con expandirse hacia un edificio cercano, causando daños materiales graves. Sin tiempo de esperar a los bomberos, la persona rompe la puerta del edificio para salvar a los ocupantes del peligro, aunque ocasiona daños en la propiedad. Según el artículo 32 del Código, ¿qué causal de ausencia de responsabilidad se aplica en este caso?",
+    options: [
+        "Obediencia debida, ya que la persona actuó para cumplir con una obligación legal de prevenir los daños.",
+        "Estado de necesidad, ya que la persona actuó para proteger un bien jurídico superior (la vida de las personas) frente a un peligro inminente, sin que tuviera otra opción razonable.",
+        "Legítima defensa, ya que la persona respondió a un ataque inminente contra los derechos ajenos.",
+        "Caso fortuito, ya que la persona no pudo evitar la situación de emergencia en la que se encontraba."
+    ],
+    answer: "Estado de necesidad, ya que la persona actuó para proteger un bien jurídico superior (la vida de las personas) frente a un peligro inminente, sin que tuviera otra opción razonable."
+},
+        {
+  question: "De acuerdo con el Artículo 26 del Código Penal colombiano, ¿en qué momento se considera que se ha realizado una conducta punible?",
+  options: [
+    "En el momento en que el resultado de la conducta se manifiesta, independientemente de cuándo ocurrió la acción o la omisión.",
+    "En el momento en que la acción o la omisión debió haber ocurrido, aunque el resultado se haya producido en otro momento posterior.",
+    "Solo en el momento en que se comete la acción ilícita, sin importar si el resultado ocurre posteriormente.",
+    "En el instante en que se produce el daño, sin tener en cuenta si el agente estaba en condiciones de evitarlo o no."
+  ],
+  answer: "En el momento en que la acción o la omisión debió haber ocurrido, aunque el resultado se haya producido en otro momento posterior."
+},
+    {
+  question: "Un hombre de una comunidad rural, donde es común utilizar métodos tradicionales de resolución de conflictos, comete un acto que en la legislación estatal se considera un delito. Sin embargo, él actuó bajo la creencia de que su acción estaba permitida dentro de las normas de su comunidad, que no reconoce la ilicitud del acto según las leyes del Estado. Según el artículo 33 del Código Penal, este individuo podría ser considerado:",
+  options: [
+    "Inimputable, debido a su contexto sociocultural, si no comprendió la ilicitud de su conducta.",
+    "Responsable penalmente, ya que las leyes del Estado prevalecen sobre las normas socioculturales.",
+    "Inimputable, solo si se prueba que la comunidad tiene costumbres que se contradicen con la ley.",
+    "Responsable penalmente, pero con una pena reducida debido a su desconocimiento de las leyes del Estado."
+  ],
+  answer: "Inimputable, debido a su contexto sociocultural, si no comprendió la ilicitud de su conducta."
+},    
+        {
+  question: "Una persona ve que una banca de parque está siendo devastada por un incendio que amenaza con expandirse hacia un edificio cercano, causando daños materiales graves. Sin tiempo de esperar a los bomberos, la persona rompe la puerta del edificio para salvar a los ocupantes del peligro, aunque ocasiona daños en la propiedad. Según el artículo 32 del Código, ¿qué causal de ausencia de responsabilidad se aplica en este caso?",
+  options: [
+    "Obediencia debida, ya que la persona actuó para cumplir con una obligación legal de prevenir los daños.",
+    "Estado de necesidad, ya que la persona actuó para proteger un bien jurídico superior (la vida de las personas) frente a un peligro inminente, sin que tuviera otra opción razonable.",
+    "Legítima defensa, ya que la persona respondió a un ataque inminente contra los derechos ajenos.",
+    "Caso fortuito, ya que la persona no pudo evitar la situación de emergencia en la que se encontraba."
+  ],
+  answer: "Estado de necesidad, ya que la persona actuó para proteger un bien jurídico superior (la vida de las personas) frente a un peligro inminente, sin que tuviera otra opción razonable."
+},
+        {
+  question: "En un barrio residencial, un ciudadano es sorprendido arrojando basura en un espacio público, infringiendo una norma municipal. Según el Código Penal colombiano, esta conducta punible sería clasificada como:",
+  options: [
+    "Un delito, ya que atenta contra el medio ambiente y la salud pública.",
+    "Una contravención, pues es una falta menor sancionada con multa.",
+    "Un delito, debido a que cualquier incumplimiento normativo es sancionado penalmente.",
+    "no es un delito ni una contravención, ya que solo las acciones violentas son conductas punibles."
+  ],
+  answer: "Una contravención, pues es una falta menor sancionada con multa."
+},
+        {
+  question: "María, al intentar cometer un robo en una tienda, entra al establecimiento con un cuchillo en mano. Se dirige a la caja registradora y exige el dinero, pero en ese momento, un cliente entra y la distrae, lo que provoca que María se asuste y decida salir corriendo antes de llevar a cabo el robo. Según el Artículo 27 del Código Penal, ¿cómo se califica la conducta de María?",
+  options: [
+    "Se configura la tentativa de delito, ya que María comenzó la ejecución del robo mediante actos idóneos e inequívocos dirigidos a su consumación.",
+    "No se configura tentativa, ya que María no utilizó un arma en el intento de robo.",
+    "No se configura tentativa, ya que María desistió de cometer el delito antes de que se consumara.",
+    "Se configura la tentativa de delito solo si María había tomado el dinero de la caja registradora."
+  ],
+  answer: "Se configura la tentativa de delito, ya que María comenzó la ejecución del robo mediante actos idóneos e inequívocos dirigidos a su consumación."
+},
+        {
+  question: "Carlos, al estar en desacuerdo con la dirección de su empresa, decide que su compañero de trabajo, Luis, robe documentos confidenciales del área administrativa. Carlos amenaza a Luis con matarlo si no lo hace y procede a entregarle las llaves del archivo a Luis y le explica cómo acceder a los documentos. Luis, siguiendo las instrucciones de Carlos, lleva a cabo el robo. Según el Artículo 29 del Código Penal, ¿quién es considerado autor del delito de robo?",
+  options: [
+    "Solo Luis, ya que fue quien ejecutó el robo.",
+    "Solo Carlos, ya que fue quien planificó el robo y utilizó a Luis como instrumento.",
+    "Ambos, porque tanto Luis como Carlos tienen un grado de responsabilidad en la realización del delito.",
+    "Ninguno, porque el delito fue ejecutado por Luis, sin que Carlos participara directamente."
+  ],
+  answer: "Solo Carlos, ya que fue quien planificó el robo y utilizó a Luis como instrumento."
+},
+        {
+  question: "Un funcionario del Banco de la República es acusado de filtrar información confidencial sobre políticas monetarias a un grupo de inversionistas privados. En su defensa, argumenta que, al no ser empleado directo del Estado, no puede ser considerado servidor público. Según el Código Penal colombiano, ¿cómo debe resolverse este caso?",
+  options: [
+    "No es servidor público, porque el Banco de la República es una entidad autónoma e independiente del Gobierno.",
+    "Solo sería servidor público si su cargo implica tomar decisiones sobre recursos estatales.",
+    "Es servidor público, porque el Artículo 20 del Código Penal lo incluye expresamente en esta categoría.",
+    "No es una conducta punible, ya que divulgar información financiera no está regulado penalmente."
+  ],
+  answer: "Es servidor público, porque el Artículo 20 del Código Penal lo incluye expresamente en esta categoría."
+},
+        {
+  question: "Según el Código Penal ley 599 de 2000, las conductas punibles se dividen en:",
+  options: [
+    "Dolosas y culposas, dependiendo de la intención del infractor.",
+    "Graves y leves, según el impacto que generan en la sociedad.",
+    "Delitos y contravenciones, de acuerdo con su gravedad y las sanciones aplicables.",
+    "Penales y administrativas, según la autoridad encargada de imponer la sanción."
+  ],
+  answer: "Delitos y contravenciones, de acuerdo con su gravedad y las sanciones aplicables."
+},
+        {
+  question: "Según el artículo 32 del Código Penal, ¿Qué causal de ausencia de responsabilidad podría aplicarse en este caso?",
+  options: [
+    "Obediencia debida, ya que el conductor estaba respondiendo a una orden de un médico para llevar a su familiar al hospital.",
+    "Legítima defensa, ya que el conductor estaba protegiendo la vida de su familiar frente a una agresión inminente.",
+    "Caso fortuito, ya que el accidente fue un incidente inesperado causado por la urgencia médica.",
+    "Estado de necesidad, ya que el conductor actuó para proteger un bien jurídico superior (la salud de su familiar) y el daño causado fue proporcionado a la emergencia."
+  ],
+  answer: "Estado de necesidad, ya que el conductor actuó para proteger un bien jurídico superior (la salud de su familiar) y el daño causado fue proporcionado a la emergencia."
+},
+        {
+  question: "Juan convence a su amigo Miguel para que robe una tienda de electrónica. Juan le ofrece la información sobre el lugar y las condiciones de seguridad, pero le deja la tarea a Miguel de ejecutar el robo. Durante el robo, Miguel recibe ayuda de su primo, Pablo, quien lo espera fuera para escapar juntos. Según el Artículo 30 del Código Penal, ¿Cómo se califica la responsabilidad de Juan y Pablo?",
+  options: [
+    "Juan es determinador y Miguel es cómplice, ambos recibirán la pena completa por el robo.",
+    "Juan es determinador y Pablo es cómplice, Juan recibirá la pena completa y Pablo una pena disminuida.",
+    "Juan es cómplice y Pablo es determinador, ambos recibirán la pena completa por el robo.",
+    "Juan y Pablo son cómplices, ambos recibirán la pena disminuida por el robo."
+  ],
+  answer: "Juan es determinador y Pablo es cómplice, Juan recibirá la pena completa y Pablo una pena disminuida."
+},
+    {
+  question: "Carlos y Marta, después de planear el robo de una joyería, acuerdan dividirse el trabajo. Carlos se encargará de distraer a los empleados del establecimiento, mientras Marta se encargará de tomar las joyas. Ambos acuerdan que, al final, compartirán el botín. Durante la ejecución del robo, ambos cumplen con sus roles y logran robar una gran cantidad de joyas. ¿Cómo se califica su responsabilidad en el delito?",
+  options: [
+    "Solo Carlos es responsable del robo, ya que fue quien distrajo a los empleados.",
+    "Solo Marta es responsable, ya que fue quien tomó las joyas.",
+    "Ambos son coautores, porque actuaron conjuntamente con un acuerdo común y división del trabajo en la comisión del delito.",
+    "Ninguno es responsable, ya que la responsabilidad solo recae sobre quien toma el objeto del delito."
+  ],
+  answer: "Ambos son coautores, porque actuaron conjuntamente con un acuerdo común y división del trabajo en la comisión del delito."
+},
+        {
+  question: "Un individuo, en un solo acto, comete los delitos de hurto (con pena de 6 años) y fraude (con pena de 4 años). Según el artículo 31 del Código Penal, ¿Cómo debe ser determinada la pena para este individuo?",
+  options: [
+    "Se le aplicará la pena por el delito de hurto y no se tendrá en cuenta el delito de fraude.",
+    "Se le aplicará la pena por el delito de fraude, ya que es el de menor gravedad.",
+    "Se le aplicará la pena más grave, que corresponde al delito de hurto, y se aumentará hasta en otro tanto.",
+    "Se le aplicará la pena más grave, que corresponde al delito de hurto, pero no se podrá aumentar."
+  ],
+  answer: "Se le aplicará la pena más grave, que corresponde al delito de hurto, y se aumentará hasta en otro tanto."
+},
+        {
+  question: "Un conductor, al transitar por una carretera, se ve repentinamente afectado por un deslizamiento de tierra debido a un desastre natural. Para evitar quedar atrapado, el conductor choca contra otro vehículo, causando daños materiales a un tercero. Según el artículo 32 del Código Penal ¿Cómo debe tratarse la responsabilidad penal de este conductor?",
+  options: [
+    "El conductor será penalmente responsable por el daño causado, ya que el accidente fue consecuencia de su mala conducción.",
+    "El conductor no será penalmente responsable, pues actuó bajo un evento de fuerza mayor, que fue el deslizamiento de tierra inesperado.",
+    "El conductor podrá ser exonerado de responsabilidad penal, pero solo si puede demostrar que no causó daño de forma intencional.",
+    "El conductor será responsable, pero podría solicitar una reducción de la pena, ya que el daño fue provocado por un caso fortuito."
+  ],
+  answer: "El conductor no será penalmente responsable, pues actuó bajo un evento de fuerza mayor, que fue el deslizamiento de tierra inesperado."
+},
+  {
+    question: "Un policía durante un operativo de detención realiza el uso de la fuerza para reducir a un individuo que está cometiendo un delito grave. El policía actúa conforme a las normas legales que le permiten usar la fuerza en esta situación. Según el artículo 32 del Código, sin embargo, es denunciado por lesiones personales y abuso de autoridad. ¿Cómo debe ser tratada la responsabilidad penal del policía?",
+    options: [
+      "El policía será penalmente responsable, ya que el uso de la fuerza, aunque legal, puede ocasionar daños no deseados.",
+      "El policía no será penalmente responsable, ya que actuó en estricto cumplimiento de un deber legal dentro de su función.",
+      "El policía podrá ser penalmente responsable solo si el uso de la fuerza fue excesivo, aún si actuaba bajo un deber legal.",
+      "El policía será responsable únicamente si el individuo no estaba cometiendo un delito grave, independientemente de la fuerza utilizada."
+    ],
+    answer: "El policía será responsable únicamente si el individuo no estaba cometiendo un delito grave, independientemente de la fuerza utilizada."
+  },
+  {
+    question: "De acuerdo con el Código Penal colombiano, ¿de qué manera se puede cometer una conducta punible?",
+    options: [
+      "Únicamente mediante un acto intencional que cause un daño a otra persona, sin necesidad de que se haya establecido un vínculo legal o de responsabilidad.",
+      "A través de la acción u omisión, cuando el agente tiene el deber de evitar un resultado y no lo hace, aun estando en capacidad de impedirlo.",
+      "Solo a través de un acto ilícito cometido con dolo, sin considerar si se tiene o no un deber de protección sobre el bien jurídico afectado.",
+      "Solo mediante la omisión, en aquellos casos en los que el agente no tiene ninguna obligación jurídica de evitar el daño."
+    ],
+    "answer": "A través de la acción u omisión, cuando el agente tiene el deber de evitar un resultado y no lo hace, aun estando en capacidad de impedirlo."
+  },
+  {
+    question: "Un bombero, al responder a un incendio en un edificio, rompe la puerta de un apartamento para rescatar a una persona atrapada dentro. Durante la intervención, el bombero causa daños en la propiedad ajena. Según el artículo 32 del Código Penal Colombiano ¿Cómo debe ser tratada la responsabilidad penal del bombero?",
+    options: [
+      "El bombero será penalmente responsable por el daño causado a la propiedad, ya que la ley no permite que se cause daño a la propiedad ajena, incluso por un motivo de rescate.",
+      "El bombero no será penalmente responsable, ya que actuó en estricto cumplimiento de un deber legal para salvar una vida, lo que justifica su actuación.",
+      "El bombero podrá ser penalmente responsable, pero solo si no se pudo demostrar que la vida estaba en peligro real al momento de la intervención.",
+      "El bombero será responsable por los daños, pero podrá solicitar una reducción de la pena por haber actuado con la intención de salvar a una persona."
+    ],
+    answer: "El bombero no será penalmente responsable, ya que actuó en estricto cumplimiento de un deber legal para salvar una vida, lo que justifica su actuación."
+  },
+  {
+    question: "Según el Artículo 26 del Código Penal colombiano, ¿Cuándo se considera que se ha cometido una conducta punible?",
+    options: [
+      "Cuando el agente lleva a cabo la acción o la omisión que da lugar al resultado, independientemente de cuándo este ocurra.",
+      "Cuando el resultado de la conducta se produce, sin importar si la acción u omisión debió haberse realizado antes o después.",
+      "Cuando la acción o la omisión es ejecutada en el tiempo que debió haber tenido lugar, incluso si el resultado ocurre más tarde.",
+      "Solo cuando el resultado de la conducta coincide con el momento exacto de la ejecución de la acción, sin tomar en cuenta si hubo una omisión previa."
+    ],
+    answer: "Cuando la acción o la omisión es ejecutada en el tiempo que debió haber tenido lugar, incluso si el resultado ocurre más tarde."
+  },
+    {
+  question: "Quien contribuya a la realización de la conducta antijurídica o preste una ayuda posterior, por concierto previo o concomitante a la misma, incurrirá en la pena prevista para la correspondiente infracción disminuida de una sexta parte a la mitad. Se refiere a",
+  options: [
+    "Interviniente",
+    "Cómplice",
+    "Determinador",
+    "Instrumento"
+  ],
+  answer: "Cómplice"
+},
+    {
+  question: "De acuerdo al código penal podemos decir que existe tentativa cuando.",
+  options: [
+    "El que iniciare la ejecución de una conducta punible mediante actos idóneos e inequívocamente dirigidos a su consumación, y ésta no se produjere por circunstancias ajenas a su voluntad",
+    "El que iniciare la ejecución de una conducta punible mediante actos idóneos e inequívocamente dirigidos a su consumación, y ésta no se produjere por su propia voluntad",
+    "El que planeara la ejecución de una conducta punible pero no realizare los actos idóneos para lograr su consumación",
+    "El que ejecutare la conducta punible mediante actos idóneos e inequívocamente dirigidos a su real consumación"
+  ],
+  answer: "El que iniciare la ejecución de una conducta punible mediante actos idóneos e inequívocamente dirigidos a su consumación, y ésta no se produjere por circunstancias ajenas a su voluntad"
+},
+    {
+  question: "La ley 599 de 2000 establece que la conducta es dolosa, culposa o preterintencional. ¿Cuál de las siguientes son punibles solo en los casos expresamente señalados por la ley?",
+  options: [
+    "El dolo y la culpa",
+    "El dolo y la preterintencional",
+    "La preterintencional y la culpa",
+    "Únicamente el dolo"
+  ],
+  answer: "La preterintencional y la culpa"
+},
+    {
+  question: "Establece las modalidades de la conducta punible encontrado como una de ellas la culpa, la cual debe estar establecida en el tipo penal; para identificar que una conducta es culposa basta con establecer que",
+  options: [
+    "cuando su resultado, siendo previsible, excede la intención del agente.",
+    "cuando el agente conoce los hechos constitutivos de la infracción penal y quiere su realización",
+    "cuando la realización de la infracción penal ha sido prevista como probable y su no producción se deja librada al azar.",
+    "cuando el resultado típico es producto de la infracción al debe objetivo de cuidado y el agente debió haberlo previsto por ser previsible, o habiéndolo previsto, confió en poder evitarlo."
+  ],
+  answer: "cuando el resultado típico es producto de la infracción al debe objetivo de cuidado y el agente debió haberlo previsto por ser previsible, o habiéndolo previsto, confió en poder evitarlo."
+},
+    {
+  question: "Sandra, quien es esposa de Juan, tiene la intención de lesionar levemente en el rostro a su esposo, por lo que le tira encima un manojo de llaves, pero no toma en cuenta que él está recostado en el barandal del balcón de su apartamento y, al percatarse de que el objeto se dirige hacia él y tratar de esquivarlo, pierde el equilibrio y se va de balcón abajo, muriendo instantáneamente. Teniendo en cuenta las modalidades de la conducta punible, podemos decir que Sandra cometió un delito en la modalidad de:",
+  options: [
+    "Dolo",
+    "Culpa",
+    "Preterintencional",
+    "Tentativa"
+  ],
+  answer: "Preterintencional"
+},
+    {
+  question: "Un mensajero que debía consignar un dinero en el banco se encuentra caminando por una calle oscura cuando un delincuente armado lo aborda y le dice que si no le entrega sus pertenencias, lo matará. El hombre, atemorizado y convencido de que está en grave peligro de muerte, decide entregar todo lo que tiene sin ofrecer resistencia. Según el artículo 32 del Código Penal, ¿Qué causal de ausencia de responsabilidad se aplica en este caso?",
+  options: [
+    "Coacción ajena insuperable, ya que el hombre actuó bajo la presión del delincuente.",
+    "Miedo insuperable, ya que el hombre actuó movido por un temor extremo e irresistible que le impidió actuar libremente.",
+    "Legítima defensa, ya que el hombre trató de defender su vida frente a una amenaza de muerte.",
+    "Estado de necesidad, ya que el hombre actuó para evitar el daño sin otra opción razonable."
+  ],
+  answer: "Miedo insuperable, ya que el hombre actuó movido por un temor extremo e irresistible que le impidió actuar libremente."
+},
+    {
+  question: "De acuerdo con el Artículo 25 del Código Penal colombiano, ¿Cómo se puede cometer una conducta punible?",
+  options: [
+    "Mediante el cumplimiento de un deber legal, sin intención de causar daño, pero ocasionando un perjuicio a otro.",
+    "Solo mediante una acción directa que cause daño a otro, sin la necesidad de que se establezca una relación de garantía entre las partes.",
+    "Mediante acción u omisión, cuando el agente tiene la obligación de evitar un resultado y no lo hace, estando en condiciones de hacerlo.",
+    "Únicamente mediante la realización de un acto que directamente contravenga la ley penal, sin considerar el contexto de la acción."
+  ],
+  answer: "Mediante acción u omisión, cuando el agente tiene la obligación de evitar un resultado y no lo hace, estando en condiciones de hacerlo."
+},
+    {
+  question: "Un hombre es amenazado de muerte por un delincuente armado si no comete un robo en una tienda cercana. Aunque el hombre no tiene intención de cometer el robo, teme por su vida y la de su familia, y decide seguir las órdenes del agresor. Según el artículo 32 del Código Penal, ¿Qué causal de ausencia de responsabilidad se aplica en este caso?",
+  options: [
+    "Estado de necesidad, ya que el hombre actuó para proteger su vida y la de su familia de un peligro inminente.",
+    "Legítima defensa, ya que el hombre estaba defendiendo a su familia de una agresión física inminente.",
+    "Coacción ajena insuperable, ya que el hombre actuó bajo una presión externa que le impedía actuar libremente.",
+    "Fuerza mayor, ya que el hombre no pudo evitar la situación de ser amenazado por el delincuente."
+  ],
+  answer: "Coacción ajena insuperable, ya que el hombre actuó bajo una presión externa que le impedía actuar libremente."
+},
+    {
+  question: "Una persona maneja su vehículo de manera temeraria y provoca un accidente en el que daña un bien ajeno. Sin embargo, al momento del accidente, el conductor estaba actuando de esa manera porque tenía que trasladar urgentemente a un familiar al hospital debido a una emergencia médica. Según el artículo 32 del Código Penal, ¿Qué causal de ausencia de responsabilidad podría aplicarse en este caso?",
+    options: [
+    "Obediencia debida, ya que el conductor estaba respondiendo a una orden de un médico para llevar a su familiar al hospital.",
+    "Legítima defensa, ya que el conductor estaba protegiendo la vida de su familiar frente a una agresión inminente.",
+    "Caso fortuito, ya que el accidente fue un incidente inesperado causado por la urgencia médica.",
+    "Estado de necesidad, ya que el conductor actuó para proteger un bien jurídico superior (la salud de su familiar) y el daño causado fue proporcionado a la emergencia."
+  ],
+  answer: "Estado de necesidad, ya que el conductor actuó para proteger un bien jurídico superior (la salud de su familiar) y el daño causado fue proporcionado a la emergencia."
+},
+    {
+  question: "Un adolescente de 16 años comete un delito, pero su desarrollo emocional y psicológico está tan retrasado que su capacidad para comprender la ilicitud de su conducta es comparable a la de un niño mucho más joven. Según el artículo 33 del Código Penal, ¿Cuál es la posible consecuencia para este adolescente?",
+  options: [
+    "Inimputable, debido a su inmadurez psicológica, si se demuestra que no podía comprender la ilicitud de su conducta.",
+    "Responsable penalmente, pero con una pena reducida debido a su inmadurez psicológica.",
+    "Inimputable, pero solo si su inmadurez psicológica es consecuencia de un trastorno mental.",
+    "Responsable penalmente, ya que la inmadurez psicológica no es un factor relevante para la imputabilidad."
+  ],
+  answer: "Inimputable, debido a su inmadurez psicológica, si se demuestra que no podía comprender la ilicitud de su conducta."
+},
+    {
+  question: "Un individuo, debido a un trastorno mental grave, comete un delito sin ser consciente de que su conducta es ilícita ni de las consecuencias de su acto. Sin embargo, el individuo no tenía antecedentes de haber inducido o causado su trastorno mental. Según el artículo 33 del Código Penal, este individuo es:",
+  options: [
+    "Responsable penalmente, ya que no se considera inimputable por trastornos mentales.",
+    "Inimputable, ya que no tenía la capacidad de comprender la ilicitud de su conducta.",
+    "Responsable penalmente, ya que la inimputabilidad solo se aplica a menores de edad.",
+    "Inimputable, pero sólo si el trastorno mental fue preordenado por él."
+  ],
+  answer: "Inimputable, ya que no tenía la capacidad de comprender la ilicitud de su conducta."
+},
+    {
+  question: "Un hombre es atacado por un ladrón que lo amenaza con un arma blanca para robarle. El hombre responde al ataque golpeando al ladrón con un palo de madera, causándole lesiones graves. Según el artículo 32 del Código Penal Colombiano, modificado por la Ley 2197 de 2022, ¿Cómo se debe considerar la responsabilidad penal del hombre?",
+  options: [
+    "El hombre será penalmente responsable, ya que causó lesiones graves, sin importar que haya sido en defensa propia.",
+    "El hombre no será penalmente responsable, ya que actuó en legítima defensa al responder a una agresión injusta y actual.",
+    "El hombre será penalmente responsable si se demuestra que la agresión con el arma blanca no era realmente peligrosa.",
+    "El hombre no será penalmente responsable si demuestra que la agresión con el cuchillo fue más grave que el golpe recibido."
+  ],
+  answer: "El hombre no será penalmente responsable, ya que actuó en legítima defensa al responder a una agresión injusta y actual."
+},
+    {
+  question: "Una persona se encuentra en su vehículo estacionado en la vía pública. Un extraño intenta ingresar al vehículo de forma violenta y el propietario, temiendo por su seguridad, responde usando un arma de fuego para repeler la agresión, hiriendo al agresor de gravedad. Según el artículo 32 del Código Penal ¿Cómo se debe considerar la responsabilidad penal del propietario del vehículo?",
+  options: [
+    "El propietario será penalmente responsable, ya que usó fuerza letal sin que estuviera en peligro inmediato.",
+    "El propietario será exonerado de responsabilidad penal, ya que actuó en legítima defensa privilegiada para rechazar la agresión de un extraño que intentaba ingresar a su vehículo.",
+    "El propietario será penalmente responsable ya que no había ingresado a su vehículo.",
+    "El propietario podrá ser exonerado de responsabilidad penal solo si demuestra que el agresor tenía una intención de robar."
+  ],
+  answer: "El propietario será exonerado de responsabilidad penal, ya que actuó en legítima defensa privilegiada para rechazar la agresión de un extraño que intentaba ingresar a su vehículo."
+},
+        {
+  question: "Un militar recibe la orden de su superior para detener a una persona que supuestamente pertenece a un grupo armado ilegal. Durante la detención, el militar comete un abuso de poder y tortura a la persona detenida, siguiendo las órdenes del superior. Según el artículo 32 del Código Penal, ¿Qué debe considerarse en relación con la obediencia debida?",
+  options: [
+    "El militar será exonerado de responsabilidad penal por seguir una orden legítima, ya que actuó bajo la obediencia debida.",
+    "El militar será penalmente responsable, ya que la tortura es un delito grave, y no se puede alegar obediencia debida en estos casos.",
+    "El militar será exonerado de responsabilidad penal si demuestra que la tortura fue accidental durante la detención.",
+    "El militar podrá ser exonerado de responsabilidad penal solo si la persona detenida era en realidad un miembro de un grupo armado ilegal."
+  ],
+  answer: "El militar será penalmente responsable, ya que la tortura es un delito grave, y no se puede alegar obediencia debida en estos casos."
+},
+        {
+  question: "Juan convence a su amigo Miguel para que robe una tienda de electrónica. Juan le ofrece la información sobre el lugar y las condiciones de seguridad, pero le deja la tarea a Miguel de ejecutar el robo. Durante el robo, Miguel recibe ayuda de su primo, Pablo, quien lo espera fuera para escapar juntos. Según el Artículo 30 del Código Penal, ¿Cómo se califica la responsabilidad de Juan y Pablo?",
+    options: [
+    "Juan es determinador y Miguel es cómplice, ambos recibirán la pena completa por el robo.",
+    "Juan es determinador y Pablo es cómplice, Juan recibirá la pena completa y Pablo una pena disminuida.",
+    "Juan es cómplice y Pablo es determinador, ambos recibirán la pena completa por el robo.",
+    "Juan y Pablo son cómplices, ambos recibirán la pena disminuida por el robo."
+  ],
+  answer: "Juan es determinador y Pablo es cómplice, Juan recibirá la pena completa y Pablo una pena disminuida."
+},
+        {
+    question: "Carlos y Marta, después de planear el robo de una joyería, acuerdan dividirse el trabajo. Carlos se encargará de distraer a los empleados del establecimiento, mientras Marta se encargará de tomar las joyas. Ambos acuerdan que, al final, compartirán el botín. Durante la ejecución del robo, ambos cumplen con sus roles y logran robar una gran cantidad de joyas. ¿Cómo se califica su responsabilidad en el delito?",
+    options: [
+      "Solo Carlos es responsable del robo, ya que fue quien distrajo a los empleados.",
+      "Solo Marta es responsable, ya que fue quien tomó las joyas.",
+      "Ninguno es responsable, ya que la responsabilidad solo recae sobre quien toma el objeto del delito.",
+      "Ambos son coautores, porque actuaron conjuntamente con un acuerdo común y división del trabajo en la comisión del delito."
+    ],
+    answer: "Ambos son coautores, porque actuaron conjuntamente con un acuerdo común y división del trabajo en la comisión del delito."
+  },
+          {
+    question:"Un individuo, un medio de un fuerte terremoto, destruye una propiedad para tener una escapatoria. Según el artículo 32 del Código Penal, ¿cómo debe ser determinada la pena?",
+    options: [
+    "Se le aplicará la pena del delito de hurto y no se tendrá en cuenta el daño causado.",
+    "El conductor podrá ser exonerado de toda responsabilidad si demuestra que no causó daño intencionalmente.",
+    "Se le aplicará la pena más grave, que corresponde al delito del hurto y a la destrucción de la propiedad ajena.",
+    "Se le aplicará la pena más grave, que corresponde al delito de hurto y no se tendrá en cuenta el daño causado."
+    ],
+    answer:"Se le aplicará la pena más grave, que corresponde al delito de hurto y no se tendrá en cuenta el daño causado."
+        },
+        {
+  question: "Un conductor, al transitar por una carretera, se ve repentinamente afectado por un deslizamiento de tierra debido a un desastre natural. Para evitar quedar atrapado, el conductor choca contra otro vehículo, causando daños materiales a un tercero. Según el artículo 32 del Código Penal ¿Cómo debe tratarse la responsabilidad penal de este conductor?",
+  options: [
+    "El conductor será penalmente responsable por el daño causado, ya que el accidente fue consecuencia de su mala conducción.",
+    "El conductor no será penalmente responsable, pues actuó bajo un evento de fuerza mayor, que fue el deslizamiento de tierra inesperado.",
+    "El conductor podrá ser exonerado de responsabilidad penal, pero solo si puede demostrar que no causó daño de forma intencional.",
+    "El conductor será responsable, pero podría solicitar una reducción de la pena, ya que el daño fue provocado por un caso fortuito."
+  ],
+  answer: "El conductor no será penalmente responsable, pues actuó bajo un evento de fuerza mayor, que fue el deslizamiento de tierra inesperado."
+},
+        {
+    question: "Quien contribuya a la realización de la conducta antijurídica o preste una ayuda posterior, por concierto previo o concomitante a la misma, incurrirá en la pena prevista para la correspondiente infracción disminuida de una sexta parte a la mitad. Se refiere a",
+    options: [
+      "Interviniente",
+      "Cómplice",
+      "Determinador",
+      "Instrumento"
+    ],
+    answer: "Cómplice"
+  },
+  {
+    question: "El que no tenga las calidades especiales exigidas en el tipo penal concurra en su realización, se le rebajará la pena en una cuarta parte. Se refiere a:",
+    options: [
+      "Cómplice",
+      "Interviniente",
+      "Determinador",
+      "Conspirador"
+    ],
+    answer: "Interviniente"
+  },
+    {
+        question: "De quien es competencia la medida correctiva de 'reparación de daños materiales por perturbación a la posesión y tenencia de inmuebles o muebles'?",
+        options: ["Alcalde", "Inspector y corregidor de policía", "Policía nacional", "Autoridad especial"],
+        answer: "Inspector y corregidor de policía"
+    },
+    {
+        question: "Prohibición de ingreso de actividad que involucra aglomeraciones de público complejas y no complejas...",
+        options: ["Impedir el ingreso de la persona entre 3 meses y 2 años", "Impedir el ingreso de la persona entre 6 meses y 3 años", "Impedir el ingreso de la persona entre 1 mes y 1 año", "Impedir el ingreso de la persona entre 12 meses y 3 años"],
+        answer: "Impedir el ingreso de la persona entre 6 meses y 3 años"
+    },
+    {
+        question: "Resolver los impedimentos y recusaciones de las autoridades de Policía de primera instancia, es competencia de la siguiente autoridad de policía",
+        options: ["Inspectores y corregidores de policía", "Gobernador", "Alcalde", "Comandantes de estación, subestación, caí y delegados."],
+        answer: "Alcalde"
+    },
+    {
+    question: "Un conductor de bus, en un momento de distracción, atropella a un peatón que cruza la calle de manera indebida. Aunque el conductor no tenía la intención de causar daño, su falta de atención al volante es la causa del accidente. Según el Artículo 21 del Código Penal colombiano, ¿cómo se clasifica la conducta del conductor?",
+    options: [
+        "Conducta dolosa, porque el conductor actuó con la intención de causar el daño al peatón.",
+        "Conducta preterintencional, porque el conductor no quería causar daño, pero el atropello resultó más grave de lo esperado.",
+        "No es una conducta punible, ya que el conductor no tenía la intención de causar daño.",
+        "Conducta culposa, ya que el conductor actuó sin intención, pero de forma imprudente."
+    ],
+    answer: "Conducta culposa, ya que el conductor actuó sin intención, pero de forma imprudente."
+    },
+    {
+    question: "Las causales de ausencia de responsabilidad se refieren a las justificaciones de la conducta bajo las que:",
+    options: [
+        "El sujeto activo tiene que indemnizar a la víctima",
+        "La responsabilidad penal será diferida en el tiempo",
+        "No abra lugar a responsabilidad penal",
+        "El estado otorga el principio de oportunidad"
+    ],
+    answer: "No abra lugar a responsabilidad penal"
+    },
+    {
+    question: "Un individuo, en medio de un fuerte terremoto, destruye la propiedad de una persona ajena para resguardarse de los escombros y salvar su vida. Debido a la magnitud del desastre, no había forma de evitar el daño sin exponerse a un peligro mayor. Según el artículo 32 del Código Penal ¿Qué se debe considerar respecto a la responsabilidad penal de esta persona?",
+    options: [
+        "La persona será penalmente responsable porque la destrucción de la propiedad fue deliberada, independientemente de la emergencia.",
+        "La persona no será penalmente responsable, ya que actuó bajo un evento de fuerza mayor que impidió evitar la destrucción.",
+        "La persona será exonerada de responsabilidad penal por haber actuado sin intención, pero solo si la destrucción fue menor.",
+        "La persona será exonerada de responsabilidad penal, pero solamente si pudo demostrar que su acción fue fruto de faltar a deber objetivo de cuidado"
+    ],
+    answer: "La persona no será penalmente responsable, ya que actuó bajo un evento de fuerza mayor que impidió evitar la destrucción."
+    },
+    {
+    question: "En un proceso penal por corrupción, se investiga a un contratista privado que manejó recursos públicos destinados a la educación. Según el Código Penal colombiano, ¿cómo debe ser tratado este contratista en relación con su calidad de servidor público?",
+    options: [
+        "No es considerado servidor público, ya que no tiene un nombramiento oficial dentro de una entidad estatal.",
+        "Es considerado servidor público, porque administró recursos públicos, aunque sea un particular.",
+        "Solo es servidor público si su contrato con el Estado tenía una duración superior a un año.",
+        "No es una conducta punible, ya que los particulares no pueden ser procesados por delitos contra la administración pública."
+    ],
+    answer: "Es considerado servidor público, porque administró recursos públicos, aunque sea un particular."
+    },
+    {
+    question: "Carlos, al intentar robar un banco, se coloca una máscara y un arma en la mano. Cuando entra al establecimiento y se dirige hacia la caja fuerte, se da cuenta de que la policía ya había sido alertada por una llamada anónima. En ese momento, Carlos huye del lugar sin haber logrado abrir la caja. Según el Artículo 27 del Código Penal, ¿cómo se califica la conducta de Carlos?",
+    options: [
+        "Acción u omisión, porque Carlos actuó pero no cumplió con su objetivo debido a su omisión.",
+        "Dolo, porque Carlos tenía la intención de cometer el delito de robo.",
+        "Tentativa, porque Carlos comenzó a ejecutar actos idóneos e inequívocos dirigidos a la consumación del robo, pero no lo consumó por circunstancias ajenas a su voluntad.",
+        "Culpa, porque Carlos no logró consumar el delito debido a su falta de habilidad para abrir la caja fuerte."
+    ],
+    answer: "Tentativa, porque Carlos comenzó a ejecutar actos idóneos e inequívocos dirigidos a la consumación del robo, pero no lo consumó por circunstancias ajenas a su voluntad."
+    },
+    {
+        question: "¿Cuáles de las siguientes son medidas correctivas establecidas por el Código Nacional de Seguridad y Convivencia Ciudadana?",
+        options: [
+            "Destrucción de bien - Suspensión temporal de actividad - Traslado por protección - Registro a persona",
+            "Suspensión definitiva de actividad - Incautación – Demolición de obra – Decomiso - multas",
+            "Suspensión inmediata de actividad - Suspensión temporal de actividad - Expulsión de domicilio",
+            "Suspensión temporal de actividad - Destrucción de bien - Suspensión definitiva de actividad – multas"
+        ],
+        answer: "Suspensión temporal de actividad - Destrucción de bien - Suspensión definitiva de actividad – multas"
+    },
+    {
+        question: "¿Cuáles medidas podrán ser impuestas por la autoridad de Policía competente para todos los comportamientos contrarios a la convivencia?",
+        options: [
+            "Amonestación - participación en programa comunitario o actividad pedagógica de convivencia",
+            "Mediación Policial – participación en programa comunitario o actividad pedagógica de convivencia – multa especial",
+            "Amonestación – multa especial - restitución y protección de bienes inmuebles",
+            "Amonestación - participación en programa comunitario o actividades deportivas – expulsión de domicilio"
+        ],
+        answer: "Amonestación - participación en programa comunitario o actividad pedagógica de convivencia"
+    },
+    {
+        question: "Es inimputable quien en el momento de ejecutar la conducta típica y antijurídica no tuviera la capacidad de comprender su ilicitud o de determinarse de acuerdo con esa comprensión, de acuerdo a la ley penal colombiana cuál de los siguientes NO son inimputables",
+        options: [
+        "Inmadurez psicológica",
+        "Adultos mayores",
+        "Trastorno mental",
+        "Diversidad sociocultural"
+        ],
+        answer: "Adultos mayores"
+    },
+    {
+    question: "la defensa que se ejerza para rechazar al extraño que usando maniobras o mediante violencia penetre o permanezca arbitrariamente en habitación o dependencias inmediatas, o vehículo ocupado. Se refiere a.",
+    options: [
+        "legítima defensa",
+        "estado de necesidad",
+        "legítima defensa privilegiada",
+        "error de tipo"
+    ],
+    answer: "legítima defensa privilegiada"
+    },
+    {
+    question: "Daniel se encuentra en una situación en la que es testigo de un intento de secuestro de una menor de edad, sin embargo, el decide tomar un vehículo sin permiso y perseguir al secuestrador para rescatar a la víctima. Al llegar los agentes de Policía lo capturan por el delito de hurto. Teniendo en cuenta las causales de ausencia e responsabilidad Daniel no es responsable porque",
+    options: [
+        "Actuó en legítima defensa",
+        "Actuó por error invencible de que la conducta constituía un delito",
+        "Actuó por miedo insuperable",
+        "Actuó por la necesidad de proteger un derecho propio o ajeno de un peligro actual o inminente"
+    ],
+    answer: "Actuó por la necesidad de proteger un derecho propio o ajeno de un peligro actual o inminente"
+    },
+    {
+    question: "De acuerdo al código penal quien realice la conducta punible por sí mismo o utilizando a otro como instrumento es:",
+    options: [
+        "Coautor",
+        "determinador",
+        "cómplice",
+        "autor"
+    ],
+    answer: "autor"
+    },
+    {
+    question: "La ley 599 de 2000 establece que concurren en la realización de la conducta punible los:",
+    options: [
+        "Autor mediato e inmediato",
+        "Autor y coautor",
+        "Interviniente y determinador",
+        "Autores y partícipes"
+    ],
+    answer: "Autores y partícipes"
+    },
+    {
+    question: "María quien trabaja en una joyería es contactada por AYMER quien le cuenta su deseo de ingresar a hurtar dicha joyería, pero requiere que esta le ayude con apagar el sistema de alarma, y así le quedara mucho más fácil efectuar su cometido a lo que maría accede y apaga a alarma sabiendo que AYMER ingresara a robar esa noche. Teniendo en cuenta el concurso de personas en la conducta punible MARÍA Y AYMER son.",
+    options: [
+        "autor mediato y autor inmediato",
+        "coautores ya que hubo acuerdo común y división del trabajo criminal",
+        "cómplice y autor",
+        "interviniente y determinador",
+        "Opción 5"
+    ],
+    answer: "cómplice y autor"
+    },
+    {
+        question: "Son atribuciones de los inspectores de policía rurales, urbanos y corregidores, las siguientes medidas correctivas:",
+        options: [
+            "Expulsión de domicilio - inutilización de bienes – destrucción de bien",
+            "Suspensión de construcción o demolición - suspensión de actividad que involucre aglomeración de público compleja.",
+            "Multas - Construcción, cerramiento, reparación o mantenimiento de inmueble - disolución de reunión o actividad que involucra aglomeraciones de público no complejas.",
+            "Suspensión de construcción o demolición – multas – decomiso - Restablecimiento del derecho de servidumbre y reparación de daños materiales."
+        ],
+        answer: "Suspensión de construcción o demolición – multas – decomiso - Restablecimiento del derecho de servidumbre y reparación de daños materiales."
+    },
+    {
+        question: "Segun el Articulo 29 del codigo penal.¿Quien se considera autor de un delito?.",
+        options: [
+            "Solo la persona que realiza directamente el acto delictivo",
+            "Solo la persona que utiliza a otros para cometer el delito",
+            "La persona que realiza directamente el acto delictivo o quien utiliza a otra persona como instrumento para cometerlo",
+            "Solo la persona que planifica el delito, sin necesidad de realizar los actos directamente"
+        ],
+            answer: "La persona que realiza directamente el acto delictivo o quien utiliza a otra persona como instrumento para cometerlo"
+    },
+    {
+        question: "Participación en programa comunitario o actividad pedagógica. Es la obligación de participar en una actividad de interés público o programa pedagógico en materia de convivencia, organizado por la administración distrital o municipal y…",
+        options: [
+            "Tendrá una duración de hasta 5 horas",
+            "Tendrá una duración de hasta 3 horas",
+            "Tendrá una duración de hasta 6 horas",
+            "Tendrá una duración de hasta 8 horas"
+        ],
+        answer: "Tendrá una duración de hasta 6 horas"
+    },
+    {
+        question: "La medida correctiva de suspensión temporal de la actividad es una atribución de la siguiente autoridad de Policía",
+        options: [
+            "comandantes de estación, subestación y de Centros de Atención Inmediata de la Policía Nacional o, sus delegados.",
+            "comandantes de estación, subcomandante de estación y de Centros de Atención Inmediata de la Policía Nacional o, sus delegados",
+            "comandantes de subestación y de Centros de Atención Inmediata de la Policía Nacional o, sus delegados y personal uniformado de la Policía Nacional",
+            "comandantes de estación, subestación, Inspectores de policía y Corregidores y comandante de Centros de Atención Inmediata de la Policía Nacional o, sus delegados."
+        ],
+        answer: "comandantes de estación, subestación y de Centros de Atención Inmediata de la Policía Nacional o, sus delegados."
+    },
+    {
+        question: "Es la orden de Policía que consiste en notificar o coercer a un grupo de personas con el objeto de terminar una reunión o actividad que involucra aglomeraciones de público no complejas que contraríen la ley.",
+        options: [
+            "Suspensión de actividad que involucre aglomeración de público compleja",
+            "Suspensión temporal de la actividad",
+            "disolución de reunión o actividad que involucra aglomeraciones de público no complejas",
+            "Suspensión definitiva de actividad"
+        ],
+        answer: "disolución de reunión o actividad que involucra aglomeraciones de público no complejas"
+    },
+    {
+        question: "Son atribuciones del personal uniformado de la policía nacional, en primera instancia la aplicación de las siguientes medidas de conformidad con el proceso verbal inmediato de policía contenido en el presente Código:",
+        options: [
+            "Amonestación - Participación en Programa Comunitario o Actividad Pedagógica de Convivencia – suspensión temporal de actividad",
+            "Inutilización de bienes – destrucción de bien – expulsión de domicilio – amonestación",
+            "Amonestación – suspensión definitiva de actividad - Participación en Programa Comunitario o Actividad Pedagógica de Convivencia",
+            "Amonestación - Participación en Programa Comunitario o Actividad Pedagógica de Convivencia – remoción de bienes – inutilización de bienes"
+        ],
+        answer: "Amonestación - Participación en Programa Comunitario o Actividad Pedagógica de Convivencia – remoción de bienes – inutilización de bienes"
+    },
+    {
+    "question": "De acuerdo al código penal podemos decir que existe tentativa cuando.",
+    "options": [
+      "El que iniciara la ejecución de una conducta punible mediante actos idóneos e inequívocamente dirigidos a su consumación, y ésta no se produjere por circunstancias ajenas a su voluntad",
+      "El que iniciara la ejecución de una conducta punible mediante actos idóneos e inequívocamente dirigidos a su consumación, y ésta no se produjere por su propia voluntad",
+      "El que planeara la ejecución de una conducta punible pero no realizare los actos idóneos para lograr su consumación",
+      "El que ejecutare la conducta punible mediante actos idóneos e inequívocamente dirigidos a su real consumación"
+    ],
+    "answer": "El que iniciara la ejecución de una conducta punible mediante actos idóneos e inequívocamente dirigidos a su consumación, y ésta no se produjere por circunstancias ajenas a su voluntad"
+  },
+    {
+        question: "La medida correctiva de la ley 1801 de 2016 Código Nacional de Seguridad y Convivencia Ciudadana denominada suspensión temporal de actividad, es el cese por un término de:",
+        options: [
+            "entre Uno (1) a diez (10) días proporcional a la gravedad de la infracción",
+            "entre tres (3) a diez (10) días proporcional a la gravedad de la infracción",
+            "entre Cinco (5) a diez (10) meses proporcional a la gravedad de la infracción",
+            "entre tres (3) a diez (10) meses proporcionales a la gravedad de la infracción"
+        ],
+        answer: "entre tres (3) a diez (10) días proporcional a la gravedad de la infracción"
+    },
+    {
+        question: "la multa general tipo 3 equivale a:",
+        options: [
+            "Ocho (8) salarios mínimos diarios legales vigentes",
+            "Dieciséis (16) salarios mínimos diarios legales vigentes",
+            "Cuatro (4) salarios mínimos legales vigentes",
+            "Ocho (8) salarios mínimos legales vigentes"
+        ],
+        answer: "Ocho (8) salarios mínimos diarios legales vigentes"
+    },
+    {
+        question: "La elaboración e implementación el Plan Integral de Seguridad y Convivencia Ciudadana PISCC Por parte del gobernador y alcalde, debe ser:",
+        options: [
+            "Dentro de los seis (6) meses del segundo año de Gobierno",
+            "Dentro de los seis (6) meses del último año de Gobierno",
+            "Dentro de los seis (6) meses del tercer año de Gobierno",
+            "Dentro de los seis (6) meses del primer año de Gobierno"
+        ],
+        answer: "Dentro de los seis (6) meses del primer año de Gobierno"
+    },
+    {
+        question: "\"Contra las medidas correctivas de competencia del personal uniformado de la policía nacional procede el recurso de apelación y este es en efecto suspensivo\" el anterior texto es:",
+        options: [
+            "Verdadero",
+            "Falso"
+        ],
+        answer: "Falso"
+    },
+    {
+        question: "El siguiente texto \"Entiéndase por esta, la acción del personal uniformado de la Policía Nacional que consiste en entregar un documento oficial que contiene orden escrita o virtual para presentarse ante autoridad de Policía o cumplir medida correctiva\", corresponde a la definición de:",
+        options: [
+            "Orden de policía",
+            "Orden de comparendo",
+            "Permiso excepcional",
+            "Suspensión inmediata de actividad"
+        ],
+        answer: "Orden de comparendo"
+    },
+    {
+        question: "Las actuaciones que se tramiten ante las autoridades de Policía, se regirán por dos clases de procesos:",
+        options: [
+            "Proceso único de policía y proceso administrativo",
+            "Orden de comparendo y proceso verbal abreviado",
+            "Proceso verbal abreviado y proceso único de policía",
+            "Proceso verbal inmediato y proceso verbal abreviado"
+        ],
+        answer: "Proceso verbal inmediato y proceso verbal abreviado"
+    },
+    {
+        question: "En qué medidas correctivas adicional a la orden de comparendo se deberá levantar acta en la que se documente el procedimiento:",
+        options: [
+            "suspensión temporal de actividad, expulsión de domicilio, destrucción de bien y disolución de reunión o actividad que involucra aglomeraciones de público no complejas",
+            "suspensión temporal de actividad, inutilización de bienes, destrucción de bien y disolución de reunión o actividad que involucra aglomeraciones de público no complejas",
+            "suspensión definitiva de actividad, inutilización de bienes, destrucción de bien y disolución de reunión o actividad que involucra aglomeraciones de público no complejas",
+            "suspensión temporal de actividad, inutilización de bienes, destrucción de bien y suspensión de aglomeración de público compleja"
+        ],
+        answer: "suspensión temporal de actividad, inutilización de bienes, destrucción de bien y disolución de reunión o actividad que involucra aglomeraciones de público no complejas"
+    },
+    {
+        question: "Pasado cuanto tiempo, desde la imposición de la multa sin que esta hubiera sido pagada se procederá al cobro coactivo, incluyendo sus intereses por mora y costos del cobro coactivo:",
+        options: [
+            "Transcurridos (90) días",
+            "Transcurridos (60) días",
+            "Transcurrido (1) mes",
+            "Transcurridos (6) meses"
+        ],
+        answer: "Transcurridos (90) días"
+    },
+    {
+        question: "En la audiencia realizada de acuerdo al artículo 223 de la ley 1801 frente al proceso verbal abreviado de competencia del alcalde, inspector y corregidor y autoridades especiales, en una etapa procesal de la audiencia se pueden decretar pruebas, si el presunto infractor o el quejoso solicitan la práctica de pruebas adicionales, pertinentes y conducentes, y si la autoridad las considera viables o las requiere, las decretará y se practicarán en un término de:",
+        options: [
+            "máximo de cinco (10) días",
+            "máximo de cinco (6) días",
+            "máximo de cinco (5) días",
+            "máximo de cinco (5) horas"
+        ],
+        answer: "máximo de cinco (5) días"
+    },
+    {
+        question: "Cumplimiento o ejecución de la orden de Policía o la medida correctiva. Una vez ejecutoriada la decisión que contenga una orden de Policía o una medida correctiva, esta se cumplirá en un término de:",
+        options: [
+            "máximo de cinco (5) días hábiles",
+            "máximo de cinco (6) días hábiles",
+            "máximo de cinco (5) semanas",
+            "máximo de cinco (6) semanas"
+        ],
+        answer: "máximo de cinco (5) días hábiles"
+    }
+];
+
+        // Ejercicios para pausas activas
+        const pausaActivaEjercicios = [
+            {
+                titulo: "Estiramiento de cuello",
+                descripcion: "1. Inclina lentamente tu cabeza hacia un lado, acercando la oreja al hombro.<br>2. Mantén 10 segundos.<br>3. Vuelve al centro y repite hacia el otro lado.<br>4. Realiza 3 repeticiones de cada lado."
+            },
+            {
+                titulo: "Rotación de hombros",
+                descripcion: "1. Siéntate o ponte de pie con la espalda recta.<br>2. Gira los hombros hacia adelante en círculos completos 5 veces.<br>3. Luego gira los hombros hacia atrás 5 veces."
+            },
+            {
+                titulo: "Ejercicio para los ojos",
+                descripcion: "1. Frota tus manos rápidamente hasta sentir calor.<br>2. Coloca tus palmas sobre los ojos sin presionar.<br>3. Mantén por 15 segundos mientras respiras profundamente.<br>4. Luego mira a lo lejos por 20 segundos."
+            },
+            {
+                titulo: "Estiramiento de muñecas",
+                descripcion: "1. Extiende un brazo hacia adelante con la palma hacia arriba.<br>2. Con la otra mano, tira suavemente de los dedos hacia abajo.<br>3. Mantén 10 segundos.<br>4. Cambia de mano y repite."
+            },
+            {
+                titulo: "Respiración profunda",
+                descripcion: "1. Siéntate cómodamente con la espalda recta.<br>2. Inhala profundamente por la nariz contando hasta 4.<br>3. Mantén el aire por 2 segundos.<br>4. Exhala lentamente por la boca contando hasta 6.<br>5. Repite 5 veces."
+            }
+        ];
+
+        let score = 0;
+        let answeredCount = 0;
+        const quizContainer = document.getElementById("quiz");
+        const scoreElement = document.getElementById("score");
+        const totalElement = document.getElementById("total");
+        const progressBar = document.getElementById("progress-bar");
+        const pausaActivaModal = document.getElementById("pausaActivaModal");
+        const pausaActivaExercise = document.getElementById("pausaActivaExercise");
+        const continuarBtn = document.getElementById("continuarBtn");
+
+        totalElement.textContent = questions.length;
+
+        questions.forEach((q, index) => {
+            const questionDiv = document.createElement("div");
+            questionDiv.classList.add("question");
+            questionDiv.innerHTML = `<p>${index + 1}. ${q.question}</p>`;
+
+            const optionsContainer = document.createElement("div");
+            optionsContainer.classList.add("options-container");
+
+            q.options.forEach(option => {
+                const label = document.createElement("label");
+                const input = document.createElement("input");
+                input.type = "radio";
+                input.name = `question${index}`;
+                input.value = option;
+                input.onclick = () => checkAnswer(index, option, label);
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(option));
+                optionsContainer.appendChild(label);
+            });
+
+            questionDiv.appendChild(optionsContainer);
+            quizContainer.appendChild(questionDiv);
+        });
+
+        function checkAnswer(questionIndex, selectedAnswer, labelElement) {
+            const question = questions[questionIndex];
+            const allLabels = labelElement.parentElement.getElementsByTagName('label');
+            
+            // Verificar si esta pregunta ya fue respondida
+            const wasAnsweredBefore = Array.from(allLabels).some(label => 
+                label.classList.contains('correct') || label.classList.contains('incorrect')
+            );
+            
+            // Reiniciar las clases de todos los labels
+            Array.from(allLabels).forEach(label => {
+                label.classList.remove('correct', 'incorrect');
+            });
+
+            if (selectedAnswer === question.answer) {
+                labelElement.classList.add('correct');
+                if (!labelElement.dataset.counted) {
+                    score++;
+                    labelElement.dataset.counted = 'true';
+                }
+            } else {
+                labelElement.classList.add('incorrect');
+                Array.from(allLabels).forEach(label => {
+                    if (label.textContent === question.answer) {
+                        label.classList.add('correct');
+                    }
+                });
+            }
+
+            // Incrementar el contador de preguntas respondidas solo si es la primera vez
+            if (!wasAnsweredBefore) {
+                answeredCount++;
+                
+                // Mostrar pausa activa cada 20 preguntas
+                if (answeredCount % 20 === 0 && answeredCount > 0) {
+                    mostrarPausaActiva();
+                }
+            }
+
+            scoreElement.textContent = score;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const progress = (answeredCount / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function mostrarPausaActiva() {
+            // Seleccionar un ejercicio aleatorio
+            const ejercicio = pausaActivaEjercicios[Math.floor(Math.random() * pausaActivaEjercicios.length)];
+            
+            // Actualizar el contenido del modal
+            pausaActivaExercise.innerHTML = `
+                <h3>${ejercicio.titulo}</h3>
+                <p>${ejercicio.descripcion}</p>
+            `;
+            
+            // Mostrar el modal
+            pausaActivaModal.classList.add('active');
+        }
+
+        // Cerrar el modal de pausa activa y continuar
+        continuarBtn.addEventListener('click', function() {
+            pausaActivaModal.classList.remove('active');
+        });
+    </script>
+</body>
+</html>
